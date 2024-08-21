@@ -1,5 +1,5 @@
 # 构建整个图
-# ? 导入模块
+# * 导入模块
 import scipy.sparse as sp  
 from utils import find_new_words
 from sklearn.feature_extraction.text import TfidfVectorizer  
@@ -10,26 +10,24 @@ from collections import Counter
 import yake
 
 dataset = ["train", "test"]
-
-# 初始化参数
-language = "en" # 文档语言
-max_ngram_size = 1 # N-grams
-deduplication_thresold = 0.9 # 筛选阈值,越小关键词越少
-deduplication_algo = 'seqm'
-windowSize = 1
-numOfKeywords = 20 # 最大数量
-
-# 存储所有关键词及其概率值
-all_keywords = []
-
-# 关键词的数量
-num_keywords = 300
-
 for data_type in dataset:
+    
+    # * 初始化YAKE模型的参数
+    language = "en" # 文档语言
+    max_ngram_size = 1 # N-grams
+    deduplication_thresold = 0.9 # 筛选阈值,越小关键词越少
+    deduplication_algo = 'seqm'
+    windowSize = 1
+    numOfKeywords = 20 # 最大数量
+    all_keywords = []  # 存储所有关键词及其概率值
+    num_keywords = 1000  # 关键词的数量
+
+    # * 读取每行文本内容
     file_path = r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/webofsci_{}_clean.txt'.format(data_type)
     with open(file_path, 'r') as file:
         lines = file.readlines()
-        
+    
+    # * 文本转换为字符串形式，并利用YAKE提取关键词
     for line in lines:
         text = line.strip()
         kw_extractor = yake.KeywordExtractor(lan=language, 
@@ -41,27 +39,26 @@ for data_type in dataset:
         keywords = kw_extractor.extract_keywords(text)
         all_keywords.extend(keywords)
 
+    # * 去除重复的词，仅保留概率最大的词，同时提取排名前300的关键词并保存
+    # ? 词表的词数能否作为超参数
     keyword_dict = {}
     for keyword, score in all_keywords:
         if keyword in keyword_dict:
-            if score < keyword_dict[keyword]:  # 保留概率值较大的关键词
+            if score > keyword_dict[keyword]:  # 保留概率值较大的关键词
                 keyword_dict[keyword] = score
         else:
             keyword_dict[keyword] = score
 
-    # 将字典转换回列表并排序
-    final_keywords = sorted(keyword_dict.items(), key=lambda x: x[1], reverse=True)
+    final_keywords = sorted(keyword_dict.items(), key=lambda x: x[1], reverse=True)  # 将字典转换回列表并排序
 
-    # 根据概率值排序并取前300个关键词
-    top_keywords = final_keywords[:num_keywords]
+    top_keywords = final_keywords[:num_keywords]  # 根据概率值排序并取前300个关键词
 
-    output_file_path = r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/top_keywords.txt'
+    output_file_path = r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/top_keywords_{}.txt'.format(data_type)
     with open(output_file_path, 'w') as output_file:
         for keyword, score in top_keywords:
             output_file.write(f"{keyword}\t{score}\n")
 
-
-    # ? 构建词表vocab
+    # * 构建词表vocab并保存，即排名前300的关键词
     vocab = [kw[0].lower() for kw in top_keywords]
     vocab_size = len(vocab)
 
@@ -69,7 +66,8 @@ for data_type in dataset:
     with open(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/webofsci_vocabulary_{}.txt'.format(data_type), "w", encoding='UTF-8') as output_file:
         output_file.write(vocab_str)
 
-    # ? 构建文档和词之间的TF-IDF关系matrix_keywords_words：衡量词的重要程度
+    # * 构建文档和词之间的TF-IDF关系matrix_keywords_words：衡量词的重要程度
+    # ! 注意：词表中的词必须能在你的文档中找到，不然会出现错误
     df = pd.read_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/webofsci_{}_allclean.txt'.format(data_type), header=None, sep = '\0')
     tf_idf_vectorizer = TfidfVectorizer(vocabulary = vocab)
     tf_idf = tf_idf_vectorizer.fit_transform(df[0])
@@ -78,17 +76,17 @@ for data_type in dataset:
     pd_data = pd.DataFrame(matrix_keywords_words, columns = columns)
     pd_data.to_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/webofsci_tf-idf_features_{}.csv'.format(data_type))
 
-    # ? 构建词与词之间的共现关系df_comatrix：统计每个词汇与其他词汇在同一个文档中共同出现的次数
+    # * 构建词与词之间的共现关系df_comatrix：统计每个词汇与其他词汇在同一个文档中共同出现的次数
     doc_list = []
     for doc_words in df[0]:
         doc_list.append(doc_words.split())
-    # 创建一个LIL格式的稀疏矩阵
-    comatrix_sparse = lil_matrix((len(vocab), len(vocab)), dtype=np.int32)
-    # 构建词汇索引映射
-    word_to_index = {word: i for i, word in enumerate(vocab)}
     
-    # 填充共现矩阵
-    for doc_words in doc_list:
+    comatrix_sparse = lil_matrix((len(vocab), len(vocab)), dtype=np.int32)  # 创建一个LIL格式的稀疏矩阵
+    
+    word_to_index = {word: i for i, word in enumerate(vocab)}  # 构建词汇索引映射
+    
+    # ! 注意：由于文档中的词的集合要大于我的词表，因此，当你对比一篇文档中的两个词，你还需要确定是否在词表中
+    for doc_words in doc_list:  # 填充共现矩阵
         word_counts = Counter(doc_words)
         for word1, count1 in word_counts.items():
             for word2, count2 in word_counts.items():
@@ -99,17 +97,16 @@ for data_type in dataset:
     comatrix_dense = comatrix_csr.toarray()
     df_comatrix = pd.DataFrame(comatrix_dense, index=vocab, columns=vocab)
     
+    # * 处理测试集中的共现矩阵
     if data_type == "test":
         vectorized_func = np.vectorize(lambda x: 1 if x > 0 else 0)
         df_comatrix = df_comatrix.apply(vectorized_func)
-        # 定义文件路径
+
         train_path = '/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/webofsci_vocabulary_train.txt'
         test_path = '/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/webofsci_vocabulary_test.txt'
 
-        # 调用函数并将结果存储在列表中
         new_words = find_new_words(train_path, test_path)
 
-        # 打印独有的词
         print(f"Test词表中独有的词: {new_words}")
         print(len(new_words))
         
@@ -124,9 +121,8 @@ for data_type in dataset:
     if data_type == "train":
         df_comatrix.to_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/comatrix_{}.csv'.format(data_type))
         
-        # ? 对词共现关系矩阵进行双向归一化
-        # 将DateFrame转换为CSR格式的稀疏矩阵
-        comatrix = sp.csr_matrix(df_comatrix.values)
+        # * 对词共现关系矩阵进行双向归一化
+        comatrix = sp.csr_matrix(df_comatrix.values)  # 将DateFrame转换为CSR格式的稀疏矩阵
 
         # 计算度矩阵D的逆平方根
         degrees = np.array(comatrix.sum(1)).flatten()

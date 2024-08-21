@@ -65,7 +65,7 @@ def clean_str(string):
     Tokenization/string cleaning for all datasets except for SST.
     Original taken from https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
     """
-    string = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", string) # 对字符串进行替换，使用re模块中的sub函数，第一个参数是一个正则表达式，表示匹配除了字母、数字、括号、逗号、感叹号、问号、单引号和反引号之外的任何字符，第二个参数是一个空格，表示将匹配到的字符替换为一个空格，第三个参数是字符串本身，表示在哪个字符串上进行替换，最后将替换后的字符串赋值给string变量
+    string = re.sub(r"[^A-Za-z0-9(),!?\'\`-]", " ", string) # 对字符串进行替换，使用re模块中的sub函数，第一个参数是一个正则表达式，表示匹配除了字母、数字、括号、逗号、感叹号、问号、单引号和反引号之外的任何字符，第二个参数是一个空格，表示将匹配到的字符替换为一个空格，第三个参数是字符串本身，表示在哪个字符串上进行替换，最后将替换后的字符串赋值给string变量
     string = re.sub(r"\'s", " \'s", string)  # 对字符串进行替换，使用re模块中的sub函数，第一个参数是一个正则表达式，表示匹配单引号后面跟着一个s的字符，第二个参数是一个空格加上单引号和s，表示将匹配到的字符替换为一个空格加上单引号和s，第三个参数是字符串本身，表示在哪个字符串上进行替换，最后将替换后的字符串赋值给string变量
     string = re.sub(r"\'ve", " \'ve", string)  # 对字符串进行替换，使用re模块中的sub函数，第一个参数是一个正则表达式，表示匹配单引号后面跟着一个ve的字符，第二个参数是一个空格加上单引号和ve，表示将匹配到的字符替换为一个空格加上单引号和ve，第三个参数是字符串本身，表示在哪个字符串上进行替换，最后将替换后的字符串赋值给string变量
     string = re.sub(r"n\'t", " n\'t", string)  # 对字符串进行替换，使用re模块中的sub函数，第一个参数是一个正则表达式，表示匹配一个n后面跟着一个单引号和t的字符，第二个参数是一个空格加上n、单引号和t，表示将匹配到的字符替换为一个空格加上n、单引号和t，第三个参数是字符串本身，表示在哪个字符串上进行替换，最后将替换后的字符串赋值给string变量
@@ -95,9 +95,9 @@ def get_wordnet_pos(tag):
     
 # ? 预处理,判断是否存在特殊符号,如果是False就丢掉
 def is_valid(word):
-    if re.match("[()\-:;,.0-9]+", word):
+    if re.match("[()\:;,.]+", word):
         return False
-    elif len(word) < 4:
+    elif len(word) < 3:
         return False
     else:
         return True
