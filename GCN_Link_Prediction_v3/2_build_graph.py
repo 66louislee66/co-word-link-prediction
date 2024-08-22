@@ -21,7 +21,7 @@ for data_type in dataset:
     windowSize = 1
     numOfKeywords = 20 # 最大数量
     all_keywords = []  # 存储所有关键词及其概率值
-    num_keywords = 1000  # 关键词的数量
+    num_keywords = 500  # 关键词的数量
 
     # * 读取每行文本内容
     file_path = r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/1_webofsci_{}_clean.txt'.format(data_type)
