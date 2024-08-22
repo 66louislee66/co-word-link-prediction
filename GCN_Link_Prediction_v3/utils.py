@@ -121,8 +121,8 @@ def decode_map(encode_map):  # 解码方法
 def build_hetero_graph_train():  # wordid1、wordid2、docid、wordid3编码解码
     
     # 编码map
-    source_data_comatrix = pd.read_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/source_data_comatrix_train.csv')
-    source_data_tfidf = pd.read_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/source_data_tfidf_train.csv')
+    source_data_comatrix = pd.read_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/2_source_data_comatrix_train.csv')
+    source_data_tfidf = pd.read_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/2_source_data_tfidf_train.csv')
     wordid_encode_map = encode_map(set(source_data_comatrix['wordid1'].values))
     docid_encode_map = encode_map(set(source_data_tfidf['docid'].values))
     
@@ -135,14 +135,14 @@ def build_hetero_graph_train():  # wordid1、wordid2、docid、wordid3编码解�
     source_data_tfidf['wordid3_encoded'] = source_data_tfidf['wordid3'].apply(lambda e: wordid_encode_map.get(str(e),-1))
     
     # 索引与词对应关系
-    with open('./data/wordid_decode_map.csv', mode='w', newline='', encoding='utf-8') as csvfile:
+    with open('./data/3_wordid_decode_map.csv', mode='w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(['Encoded ID', 'Original Word'])  # 写入标题行 
         for encoded_id, original_word in wordid_decode_map.items():  # 遍历解码映射并写入每个条目
             writer.writerow([encoded_id, original_word])
 
     # 对于docid_decode_map也是类似的过程
-    with open('./data/docid_decode_map.csv', mode='w', newline='', encoding='utf-8') as csvfile:
+    with open('./data/3_docid_decode_map.csv', mode='w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(['Encoded ID', 'Original Doc ID'])
         for encoded_id, original_doc_id in docid_decode_map.items():
@@ -160,9 +160,9 @@ def build_hetero_graph_train():  # wordid1、wordid2、docid、wordid3编码解�
     
     # 保存编码后的矩阵
     final_source_data_comatrix = source_data_comatrix[['wordid1_encoded','wordid2_encoded','weight']].sort_values(by='wordid1_encoded', ascending=True)
-    final_source_data_comatrix.to_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/final_source_data_comatrix_train.csv',index=False)
+    final_source_data_comatrix.to_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/3_final_source_data_comatrix_train.csv',index=False)
     final_source_data_tfidf = source_data_tfidf[['docid_encoded','wordid3_encoded','weight']].sort_values(by='docid_encoded', ascending=True)
-    final_source_data_tfidf.to_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/final_source_data_tfidf_train.csv',index=False)
+    final_source_data_tfidf.to_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/3_final_source_data_tfidf_train.csv',index=False)
     
     # word -co-occurence- word
     word_e_word_src = final_source_data_comatrix['wordid1_encoded'].values
