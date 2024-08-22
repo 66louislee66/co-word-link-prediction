@@ -95,7 +95,7 @@ def get_wordnet_pos(tag):
     
 # ? 预处理,判断是否存在特殊符号,如果是False就丢掉
 def is_valid(word):
-    if re.match("[()\:;,.]+", word):
+    if re.match(r"[()\:;,.'-0-9]+", word):
         return False
     elif len(word) < 3:
         return False
@@ -103,126 +103,22 @@ def is_valid(word):
         return True
 
 # ! training.py
-# ? 统一节点类型
-#编码方法
-def encode_map(input_array):
+# * 统一节点类型
+def encode_map(input_array):  # 编码方法
     p_map={}
     length=len(input_array)
     for index, ele in zip(range(length),input_array):
-        # print(ele,index)
         p_map[str(ele)] = index
     return p_map
 
-#解码方法
-def decode_map(encode_map):
+def decode_map(encode_map):  # 解码方法
     de_map={}
     for k,v in encode_map.items():
-        # index,ele 
         de_map[v]=k
     return de_map
 
-# ? 构建异构图hetero_graph
-# def build_hetero_graph():
-# # TODO 构图方案一
-#     # # 读取共现关系矩阵和TF-IDF关系矩阵
-#     # df_comatrix_normalized = pd.read_csv(r'E:\实验室\工作\课题工作\GCN_Link_Prediction\data\comatrix_normalized.csv', index_col=0)
-#     # pd_data = pd.read_csv(r'E:\实验室\工作\课题工作\GCN_Link_Prediction\data\webofsci_tf-idf_features.csv', index_col=0)
-
-#     # # 假设df_comatrix的索引和列都是词汇，pd_data的索引是文档ID，列是词汇
-#     # words = df_comatrix_normalized.columns
-#     # docs = pd_data.index
-
-#     # # 创建词汇和文档的节点类型
-#     # word_ids = torch.tensor(range(len(words)))
-#     # num_words = len(word_ids)
-#     # word_features = torch.eye(num_words)
-#     # doc_ids = torch.tensor(range(len(docs)))
-#     # num_docs = len(doc_ids)
-#     # doc_features = torch.eye(num_docs)
-
-#     # # 创建词汇与词汇之间的边
-#     # word_word_edges = torch.tensor(df_comatrix_normalized.stack().values.nonzero())
-
-#     # # 创建文档与词汇之间的边
-#     # doc_word_edges = torch.tensor(pd_data.stack().values.nonzero())
-    
-#     # # 提取词与词之间的权重
-#     # word_word_weights = torch.tensor(df_comatrix_normalized.stack().values.tolist())
-
-#     # # 提取文档与词之间的TF-IDF权重
-#     # doc_word_weights = torch.tensor(pd_data.stack().values.tolist())
-
-#     # # 构建异构图
-#     # graph_data = {
-#     #     ('word', 'co-occurrence', 'word'): (word_word_edges[0], word_word_edges[1]),
-#     #     ('word', 'co-occurrence_i', 'word'): (word_word_edges[1], word_word_edges[0]),
-#     #     ('doc', 'tf-idf', 'word'): (doc_word_edges[0], doc_word_edges[1]),
-#     #     ('word', 'tf-idf_i', 'doc'): (doc_word_edges[1], doc_word_edges[0])
-#     # }
-#     # g = dgl.heterograph(graph_data)
-
-#     # # 设置节点特征
-#     # g.nodes['word'].data['feat'] = word_features
-#     # g.nodes['doc'].data['feat'] = doc_features
-    
-#     # # 设置边特征
-#     # g.edges['co-occurrence'].data['weight'] = word_word_weights
-#     # g.edges['tf-idf'].data['weight'] = doc_word_weights
-    
-#     # return g
-
-# # TODO 构图方案二
-#     # # 读取共现关系矩阵和TF-IDF关系矩阵
-#     # df_comatrix_normalized = pd.read_csv(r'E:\实验室\工作\课题工作\GCN_Link_Prediction\data\comatrix_normalized.csv', index_col=0)
-#     # pd_data = pd.read_csv(r'E:\实验室\工作\课题工作\GCN_Link_Prediction\data\webofsci_tf-idf_features.csv', index_col=0)
-
-#     # # 假设df_comatrix的索引和列都是词汇，pd_data的索引是文档ID，列是词汇
-#     # words = df_comatrix_normalized.columns
-#     # docs = pd_data.index
-    
-#     final_source_data_comatrix = pd.read_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/final_source_data_comatrix_{}.csv'.format(data_type))
-#     final_source_data_tfidf = pd.read_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/final_source_data_tfidf_{}.csv'.format(data_type))
-    
-#     # word -co-occurence- word
-#     word_e_word_src = final_source_data_comatrix['wordid1_encoded'].values
-#     word_e_word_dst = final_source_data_comatrix['wordid2_encoded'].values
-#     co_occurrence_weights = final_source_data_comatrix['weight'].values
-
-#     # doc -tfidf- word
-#     doc_e_word_src = final_source_data_tfidf['docid_encoded'].values
-#     doc_e_word_dst = final_source_data_tfidf['wordid3_encoded'].values
-#     tfidf_weights = final_source_data_tfidf['weight'].values
-
-#     # # 创建词汇和文档的节点类型
-#     # word_ids = torch.tensor(range(len(words)))
-#     # num_words = len(word_ids)
-#     # word_features = torch.eye(num_words)
-#     # doc_ids = torch.tensor(range(len(docs)))
-#     # num_docs = len(doc_ids)
-#     # doc_features = torch.eye(num_docs)
-    
-#     graph_data = {
-#         ('word', 'co-occurrence', 'word'): (word_e_word_src, word_e_word_dst),
-#         ('word', 'co-occurrence_i', 'word'): (word_e_word_dst, word_e_word_src),
-#         ('doc', 'tf-idf', 'word'): (doc_e_word_src, doc_e_word_dst),
-#         ('word', 'tf-idf_i', 'doc'): (doc_e_word_dst, doc_e_word_src)
-#     }
-#     g = dgl.heterograph(graph_data)
-    
-#     # 节点特征可以随机产生，然后与模型一起进行训练
-#     # # 设置节点特征
-#     # g.nodes['word'].data['feat'] = word_features
-#     # g.nodes['doc'].data['feat'] = doc_features
-
-#     # 设置边特征
-#     g.edges['co-occurrence'].data['weight'] = torch.tensor(co_occurrence_weights, dtype=torch.float32)
-#     g.edges['tf-idf'].data['weight'] = torch.tensor(tfidf_weights, dtype=torch.float32)
-
-#     return g
-
-# ? 构建训练集的异构图
-def build_hetero_graph_train():
-    # ? wordid1、wordid2、docid、wordid3编码解码
+# * 构建训练集的异构图
+def build_hetero_graph_train():  # wordid1、wordid2、docid、wordid3编码解码
     
     # 编码map
     source_data_comatrix = pd.read_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/source_data_comatrix_train.csv')
@@ -238,12 +134,11 @@ def build_hetero_graph_train():
     source_data_tfidf['docid_encoded'] = source_data_tfidf['docid'].apply(lambda e: docid_encode_map.get(str(e),-1))
     source_data_tfidf['wordid3_encoded'] = source_data_tfidf['wordid3'].apply(lambda e: wordid_encode_map.get(str(e),-1))
     
+    # 索引与词对应关系
     with open('./data/wordid_decode_map.csv', mode='w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
-        # 写入标题行
-        writer.writerow(['Encoded ID', 'Original Word'])
-        # 遍历解码映射并写入每个条目
-        for encoded_id, original_word in wordid_decode_map.items():
+        writer.writerow(['Encoded ID', 'Original Word'])  # 写入标题行 
+        for encoded_id, original_word in wordid_decode_map.items():  # 遍历解码映射并写入每个条目
             writer.writerow([encoded_id, original_word])
 
     # 对于docid_decode_map也是类似的过程
@@ -263,6 +158,7 @@ def build_hetero_graph_train():
     wordid3_count = len(set(source_data_tfidf['wordid3_encoded'].values))
     print(wordid3_count)
     
+    # 保存编码后的矩阵
     final_source_data_comatrix = source_data_comatrix[['wordid1_encoded','wordid2_encoded','weight']].sort_values(by='wordid1_encoded', ascending=True)
     final_source_data_comatrix.to_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/final_source_data_comatrix_train.csv',index=False)
     final_source_data_tfidf = source_data_tfidf[['docid_encoded','wordid3_encoded','weight']].sort_values(by='docid_encoded', ascending=True)

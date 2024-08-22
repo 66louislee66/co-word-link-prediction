@@ -1,5 +1,5 @@
 # 训练整个模型
-# ? 导入模块
+# * 导入模块
 import numpy as np
 import pickle as pkl
 import networkx as nx
@@ -36,32 +36,24 @@ from dgl.nn import GraphConv,SAGEConv
 from utils import *
 from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix,f1_score, roc_curve, auc
 
-# ! Training model
+# TODO Training model
 
-# ? 设置设备
+# * 设置设备
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-# ? 构建异构图hetero_graph
+# * 构建异构图hetero_graph
 hetero_graph,word_e_word_count,doc_e_word_count = build_hetero_graph_train()
 print(hetero_graph)
 
-# hetero_graph_test = build_hetero_graph_test()
-# print(hetero_graph_test)
-
-# 特征维度大小
-n_hetero_features = 16
-
-# ? 边采样和数据加载
-# 采样定义
+# * 边采样和数据加载
+n_hetero_features = 16  # 特征维度大小
 neg_sample_count = 1
 batch_size=81920
 
-# 采样2层全部节点
-sampler = MultiLayerFullNeighborSampler(2)
+
+sampler = MultiLayerFullNeighborSampler(2)  # 采样2层全部节点
 sampler = as_edge_prediction_sampler(sampler, negative_sampler=dgl.dataloading.negative_sampler.Uniform(neg_sample_count))
-# sampler = as_edge_prediction_sampler(sampler)
-# 边的条数,数目比顶点个数多很多
-# 这是 GraphDataLoader数据加载器
+
 hetero_graph.edges['co-occurrence'].data['train_mask'] = torch.zeros(word_e_word_count, dtype=torch.bool).bernoulli(1.0)
 train_word_eids = hetero_graph.edges['co-occurrence'].data['train_mask'].nonzero(as_tuple=True)[0]
 word_dataloader = dgl.dataloading.DataLoader(  # 分batch训练

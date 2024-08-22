@@ -1,17 +1,14 @@
 # 清洗web of science中的文件，保留摘要部分
 # * 导入模块
-from nltk.corpus import stopwords  #从nltk库中导入stopwords模块
-import nltk  # 导入nltk库
-from utils import clean_str,get_wordnet_pos,is_valid
-from nltk import word_tokenize, pos_tag
-from nltk.corpus import wordnet
-from nltk.stem import WordNetLemmatizer
+from utils import clean_str,is_valid
+from nltk import word_tokenize
+
 
 dataset = ["train", "test"]
 for data_type in dataset:
     
     # * 初步清洗，只保留摘要部分，原始文档
-    with open(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/webofsci_{}.txt'.format(data_type), "r", encoding='UTF-8') as input_file, open(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/webofsci_{}_clean.txt'.format(data_type), "w+", encoding='UTF-8') as output_file:
+    with open(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/1_webofsci_{}.txt'.format(data_type), "r", encoding='UTF-8') as input_file, open(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/1_webofsci_{}_clean.txt'.format(data_type), "w+", encoding='UTF-8') as output_file:
         flag = False
         for line in input_file:
             if line.startswith('AB '):
@@ -25,7 +22,7 @@ for data_type in dataset:
 
     # * 创建文档内容列表doc_content_list
     doc_content_list = []  
-    f = open(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/webofsci_{}_clean.txt'.format(data_type), 'rb') 
+    f = open(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/1_webofsci_{}_clean.txt'.format(data_type), 'rb') 
     for line in f.readlines():
         doc_content_list.append(line.strip().decode('latin1')) 
     f.close()
@@ -61,7 +58,7 @@ for data_type in dataset:
 
     clean_corpus_str = '\n'.join(clean_docs)  
 
-    f = open(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/webofsci_{}_allclean.txt'.format(data_type), 'w') 
+    f = open(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/1_webofsci_{}_allclean.txt'.format(data_type), 'w') 
     f.write(clean_corpus_str)  
     f.close()
 
@@ -70,7 +67,7 @@ for data_type in dataset:
     aver_len = 0  
     max_len = 0  
 
-    f = open(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/webofsci_{}_allclean.txt'.format(data_type), 'r') 
+    f = open(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/1_webofsci_{}_allclean.txt'.format(data_type), 'r') 
     lines = f.readlines()  
     for line in lines:  
         line = line.strip() 
