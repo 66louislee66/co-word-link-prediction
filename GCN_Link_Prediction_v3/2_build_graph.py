@@ -73,7 +73,7 @@ for data_type in dataset:
     # * 构建文档和词之间的TF-IDF关系matrix_keywords_words：衡量词的重要程度
     # ! 注意：词表中的词必须能在你的文档中找到，不然会出现错误
     df = pd.read_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/1_webofsci_{}_allclean.txt'.format(data_type), header=None, sep = '\0')
-    tf_idf_vectorizer = TfidfVectorizer(vocabulary = vocab)
+    tf_idf_vectorizer = TfidfVectorizer(vocabulary = vocab, token_pattern=r'(?u)\b\w[\w-]*\b')
     tf_idf = tf_idf_vectorizer.fit_transform(df[0])
     matrix_keywords_words = tf_idf.toarray()
     columns = vocab

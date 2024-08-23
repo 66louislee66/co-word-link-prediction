@@ -1,3 +1,5 @@
+# 对比传统机器学习算法和text-GCN
+# * 导入模块
 import pandas as pd
 import numpy as np
 import torch
@@ -20,18 +22,10 @@ import gc
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-# ? 加载节点数据(通过自编码器训练出低维的特征向量)
-# df_word = pd.read_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/word_embeddings_inference.csv')
-# scaler = StandardScaler()
-# df_word_standardized = pd.DataFrame(scaler.fit_transform(df_word), columns=df_word.columns)
-# df_word_standardized.to_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/word_embeddings_inference_standardized.csv', index=False)
-# df_word_standardized = df_word_standardized.astype(np.float32)
-# word_arr = df_word_standardized.values
-# word_tensor = torch.from_numpy(word_arr)
-# word_tensor = word_tensor.to(device)
-compressed_features = pd.read_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/compressed_features.csv', index_col = 0)
-compressed_features = compressed_features.astype(np.float32)
-LDA_arr = compressed_features.values
+# * 加载节点数据(LDA特征)
+df_LDA = pd.read_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/4_webofsci_train_LDA_features.csv', index_col = 0)
+df_LDA = df_LDA.astype(np.float32)
+LDA_arr = df_LDA.values.T
 LDA_tensor = torch.from_numpy(LDA_arr)
 LDA_tensor = LDA_tensor.to(device)
 
