@@ -121,8 +121,8 @@ def decode_map(encode_map):  # 解码方法
 def build_hetero_graph_train():  # wordid1、wordid2、docid、wordid3编码解码
     
     # 编码map
-    source_data_comatrix = pd.read_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/2_source_data_comatrix_train.csv')
-    source_data_tfidf = pd.read_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/2_source_data_tfidf_train.csv')
+    source_data_comatrix = pd.read_csv(r'./data/2_source_data_comatrix_train.csv')
+    source_data_tfidf = pd.read_csv(r'./data/2_source_data_tfidf_train.csv')
     wordid_encode_map = encode_map(set(source_data_comatrix['wordid1'].values))
     docid_encode_map = encode_map(set(source_data_tfidf['docid'].values))
     
@@ -160,9 +160,9 @@ def build_hetero_graph_train():  # wordid1、wordid2、docid、wordid3编码解�
     
     # 保存编码后的矩阵
     final_source_data_comatrix = source_data_comatrix[['wordid1_encoded','wordid2_encoded','weight']].sort_values(by='wordid1_encoded', ascending=True)
-    final_source_data_comatrix.to_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/3_final_source_data_comatrix_train.csv',index=False)
+    final_source_data_comatrix.to_csv(r'./data/3_final_source_data_comatrix_train.csv',index=False)
     final_source_data_tfidf = source_data_tfidf[['docid_encoded','wordid3_encoded','weight']].sort_values(by='docid_encoded', ascending=True)
-    final_source_data_tfidf.to_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/3_final_source_data_tfidf_train.csv',index=False)
+    final_source_data_tfidf.to_csv(r'./data/3_final_source_data_tfidf_train.csv',index=False)
     
     # word -co-occurence- word
     word_e_word_src = final_source_data_comatrix['wordid1_encoded'].values

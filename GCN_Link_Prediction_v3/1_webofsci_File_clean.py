@@ -8,7 +8,7 @@ dataset = ["train", "test"]
 for data_type in dataset:
     
     # * 初步清洗，只保留摘要部分，原始文档
-    with open(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/1_webofsci_{}.txt'.format(data_type), "r", encoding='UTF-8') as input_file, open(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/1_webofsci_{}_clean.txt'.format(data_type), "w+", encoding='UTF-8') as output_file:
+    with open(r'./data/1_webofsci_{}.txt'.format(data_type), "r", encoding='UTF-8') as input_file, open(r'./data/1_webofsci_{}_clean.txt'.format(data_type), "w+", encoding='UTF-8') as output_file:
         flag = False
         for line in input_file:
             if line.startswith('AB '):
@@ -22,13 +22,13 @@ for data_type in dataset:
 
     # * 创建文档内容列表doc_content_list
     doc_content_list = []  
-    f = open(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/1_webofsci_{}_clean.txt'.format(data_type), 'rb') 
+    f = open(r'./data/1_webofsci_{}_clean.txt'.format(data_type), 'rb') 
     for line in f.readlines():
         doc_content_list.append(line.strip().decode('latin1')) 
     f.close()
     
     # * 自定义停用词
-    resource_path = r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/StopwordsList/stopwords_en.txt'
+    resource_path = r'./StopwordsList/stopwords_en.txt'
     with open(resource_path, encoding='utf-8') as stop_fil:
         stop_words = set(stop_fil.read().lower().split("\n"))
 
@@ -58,7 +58,7 @@ for data_type in dataset:
 
     clean_corpus_str = '\n'.join(clean_docs)  
 
-    f = open(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/1_webofsci_{}_allclean.txt'.format(data_type), 'w') 
+    f = open(r'./data/1_webofsci_{}_allclean.txt'.format(data_type), 'w') 
     f.write(clean_corpus_str)  
     f.close()
 
@@ -67,7 +67,7 @@ for data_type in dataset:
     aver_len = 0  
     max_len = 0  
 
-    f = open(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/1_webofsci_{}_allclean.txt'.format(data_type), 'r') 
+    f = open(r'./data/1_webofsci_{}_allclean.txt'.format(data_type), 'r') 
     lines = f.readlines()  
     for line in lines:  
         line = line.strip() 

@@ -7,9 +7,9 @@ import lda
 import lda.datasets
 
 # *对词表所有语料进行向量化
-decode_map_df = pd.read_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/3_wordid_decode_map.csv')
+decode_map_df = pd.read_csv(r'./data/3_wordid_decode_map.csv')
 feature_names = decode_map_df['Original Word'].tolist()
-df = pd.read_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/1_webofsci_train_allclean.txt', header=None, sep = '\0')
+df = pd.read_csv(r'./data/1_webofsci_train_allclean.txt', header=None, sep = '\0')
 documents = df[0].values.tolist()
 count_vectorizer = CountVectorizer(vocabulary = feature_names)
 cv = count_vectorizer.fit_transform(documents)
@@ -49,5 +49,5 @@ tf_idf = tf_idf_vectorizer.fit_transform(df[0])
 matrix_keywords_words = tf_idf.toarray()
 pd_data = pd.DataFrame(matrix_keywords_words, columns = columns)
 my_final_df = pd_data.append(df_output, ignore_index = True)
-my_final_df.to_csv(r'/home/lym/lab/project_work/project_versions/GCN_Link_Prediction_v3/data/4_webofsci_train_LDA_features.csv')
-print(my_final_df.shape)
+my_final_df.to_csv(r'./data/4_webofsci_train_LDA_features.csv')
+print(df_output.shape)
