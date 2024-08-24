@@ -124,7 +124,6 @@ for data_type in dataset:
         
     if data_type == "train":
         df_comatrix.to_csv(r'./data/2_comatrix_{}.csv'.format(data_type))
-        
         # * 对词共现关系矩阵进行双向归一化并保存
         # ! 注意：如果某些点无任何连接，那么它的度就为0，导致度矩阵存在零值，影响计算，可以将零值转为一个非常小的值
         comatrix = sp.csr_matrix(df_comatrix.values)  

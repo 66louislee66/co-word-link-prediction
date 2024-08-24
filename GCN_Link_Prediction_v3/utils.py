@@ -1,14 +1,6 @@
 import numpy as np
 import pandas as pd
-import pickle as pkl
-import networkx as nx
-import scipy.sparse as sp
-from scipy.sparse.linalg import eigsh  # .eigen.arpack
-import sys
 import re
-from nltk import word_tokenize, pos_tag
-from nltk.corpus import wordnet
-from nltk.stem import WordNetLemmatizer
 import dgl
 import torch
 import tqdm
@@ -17,83 +9,43 @@ import torch.nn as nn
 import torch.nn.functional as F
 import dgl.nn as dglnn
 import dgl.function as fn
-from dgl.nn.pytorch import GraphConv, SAGEConv, HeteroGraphConv
-from dgl.nn import GraphConv,SAGEConv
-import argparse
-import torch.optim as optim
-from dgl.dataloading import MultiLayerFullNeighborSampler, GraphDataLoader, DataLoader
-from dgl.dataloading.negative_sampler import Uniform
-import itertools
-import os
-from dgl import save_graphs, load_graphs
-from dgl.utils import expand_as_pair
-from collections import defaultdict
-from dgl.data.utils import makedirs, save_info, load_info
-from sklearn.metrics import roc_auc_score
-from sklearn import metrics
+from dgl.nn.pytorch import GraphConv, HeteroGraphConv
+from dgl.nn import GraphConv
+from sklearn.metrics import roc_auc_score, accuracy_score, recall_score, precision_score
 from sklearn.metrics import check_scoring
-from sklearn.preprocessing import StandardScaler
+import torch_geometric.transforms as T
+from torch_geometric.nn import GCNConv
+from torch_geometric.utils import negative_sampling
+import torch.nn.functional as F
 import numbers
 from torch_geometric.data import Data
 import csv
 import gc
 gc.collect()
 
-# ! Pubmed_File_clean.py
-def loadWord2Vec(filename):  # 定义一个函数，名为 loadWord2Vec，它接受一个参数，即文件名
-    """Read Word Vectors"""
-    vocab = []  # 定义三个空列表，分别用于存储单词表、单词向量的列表和单词向量的字典
-    embd = []
-    word_vector_map = {}
-    file = open(filename, 'r') 
-    for line in file.readlines():  # 使用一个 for 循环，遍历文件中的每一行，每一行的内容赋值给变量 line
-        row = line.strip().split(' ')  # 使用 strip 方法，去掉行首和行尾的空白字符，接着，使用 split 方法，以空格为分隔符，将字符串分割成一个列表，赋值给变量 row。
-        if(len(row) > 2):  # 判断列表的长度是否大于 2，如果是，说明这一行是有效的单词向量数据
-            vocab.append(row[0])  # 将列表的第一个元素，即单词，添加到 vocab 列表中
-            vector = row[1:]  # 将列表的剩余元素，即单词向量，赋值给变量 vector
-            length = len(vector)
-            for i in range(length):  
-                vector[i] = float(vector[i])  # 将单词向量的元素从字符串类型转换成浮点数类型，覆盖原来的值
-            embd.append(vector)  # 将单词向量添加到 embd 列表中
-            word_vector_map[row[0]] = vector  # 将单词和单词向量作为键值对，添加到 word_vector_map 字典中
-    print('Loaded Word Vectors!')  
-    file.close()
-    return vocab, embd, word_vector_map
-
+# TODO 1_Webofsci_File_clean.py
+# * 分词
 def clean_str(string):
     """
     Tokenization/string cleaning for all datasets except for SST.
     Original taken from https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
     """
-    string = re.sub(r"[^A-Za-z0-9(),!?\'\`-]", " ", string) # 对字符串进行替换，使用re模块中的sub函数，第一个参数是一个正则表达式，表示匹配除了字母、数字、括号、逗号、感叹号、问号、单引号和反引号之外的任何字符，第二个参数是一个空格，表示将匹配到的字符替换为一个空格，第三个参数是字符串本身，表示在哪个字符串上进行替换，最后将替换后的字符串赋值给string变量
-    string = re.sub(r"\'s", " \'s", string)  # 对字符串进行替换，使用re模块中的sub函数，第一个参数是一个正则表达式，表示匹配单引号后面跟着一个s的字符，第二个参数是一个空格加上单引号和s，表示将匹配到的字符替换为一个空格加上单引号和s，第三个参数是字符串本身，表示在哪个字符串上进行替换，最后将替换后的字符串赋值给string变量
-    string = re.sub(r"\'ve", " \'ve", string)  # 对字符串进行替换，使用re模块中的sub函数，第一个参数是一个正则表达式，表示匹配单引号后面跟着一个ve的字符，第二个参数是一个空格加上单引号和ve，表示将匹配到的字符替换为一个空格加上单引号和ve，第三个参数是字符串本身，表示在哪个字符串上进行替换，最后将替换后的字符串赋值给string变量
-    string = re.sub(r"n\'t", " n\'t", string)  # 对字符串进行替换，使用re模块中的sub函数，第一个参数是一个正则表达式，表示匹配一个n后面跟着一个单引号和t的字符，第二个参数是一个空格加上n、单引号和t，表示将匹配到的字符替换为一个空格加上n、单引号和t，第三个参数是字符串本身，表示在哪个字符串上进行替换，最后将替换后的字符串赋值给string变量
-    string = re.sub(r"\'re", " \'re", string)  # 对字符串进行替换，使用re模块中的sub函数，第一个参数是一个正则表达式，表示匹配单引号后面跟着一个re的字符，第二个参数是一个空格加上单引号和re，表示将匹配到的字符替换为一个空格加上单引号和re，第三个参数是字符串本身，表示在哪个字符串上进行替换，最后将替换后的字符串赋值给string变量
-    string = re.sub(r"\'d", " \'d", string)  # 对字符串进行替换，使用re模块中的sub函数，第一个参数是一个正则表达式，表示匹配单引号后面跟着一个d的字符，第二个参数是一个空格加上单引号和d，表示将匹配到的字符替换为一个空格加上单引号和d，第三个参数是字符串本身，表示在哪个字符串上进行替换，最后将替换后的字符串赋值给string变量
-    string = re.sub(r"\'ll", " \'ll", string)  # 对字符串进行替换，使用re模块中的sub函数，第一个参数是一个正则表达式，表示匹配单引号后面跟着一个ll的字符，第二个参数是一个空格加上单引号和ll，表示将匹配到的字符替换为一个空格加上单引号和ll，第三个参数是字符串本身，表示在哪个字符串上进行替换，最后将替换后的字符串赋值给string变量
-    string = re.sub(r",", " , ", string)  # 对字符串进行替换，使用re模块中的sub函数，第一个参数是一个正则表达式，表示匹配一个逗号的字符，第二个参数是一个空格加上逗号和空格，表示将匹配到的字符替换为一个空格加上逗号和空格，第三个参数是字符串本身，表示在哪个字符串上进行替换，最后将替换后的字符串赋值给string变量
-    string = re.sub(r"!", " ! ", string)  # 对字符串进行替换，使用re模块中的sub函数，第一个参数是一个正则表达式，表示匹配一个感叹号的字符，第二个参数是一个空格加上感叹号和空格，表示将匹配到的字符替换为一个空格加上感叹号和空格，第三个参数是字符串本身，表示在哪个字符串上进行替换，最后将替换后的字符串赋值给string变量
-    string = re.sub(r"\(", " \( ", string)  # 对字符串进行替换，使用re模块中的sub函数，第一个参数是一个正则表达式，表示匹配一个左括号的字符，第二个参数是一个空格加上左括号和空格，表示将匹配到的字符替换为一个空格加上左括号和空格，第三个参数是字符串本身，表示在哪个字符串上进行替换，最后将替换后的字符串赋值给string变量
-    string = re.sub(r"\)", " \) ", string)  # 对字符串进行替换，使用re模块中的sub函数，第一个参数是一个正则表达式，表示匹配一个右括号的字符，第二个参数是一个空格加上右括号和空格，表示将匹配到的字符替换为一个空格加上右括号和空格，第三个参数是字符串本身，表示在哪个字符串上进行替换，最后将替换后的字符串赋值给string变量
-    string = re.sub(r"\?", " \? ", string)  # 对字符串进行替换，使用re模块中的sub函数，第一个参数是一个正则表达式，表示匹配一个问号的字符，第二个参数是一个空格加上问号和空格，表示将匹配到的字符替换为一个空格加上问号和空格，第三个参数是字符串本身，表示在哪个字符串上进行替换，最后将替换后的字符串赋值给string变量
-    string = re.sub(r"\s{2,}", " ", string) # 对字符串进行替换，使用re模块中的sub函数，第一个参数是一个正则表达式，表示匹配两个或以上的空白字符，包括空格、制表符、换行符等，第二个参数是一个空格，表示将匹配到的字符替换为一个空格，第三个参数是字符串本身，表示在哪个字符串上进行替换，最后将替换后的字符串赋值给string变量
-    return string.strip().lower()  # 返回一个处理后的字符串，使用字符串对象的strip和lower方法，strip方法的作用是去掉字符串两端的空白字符，lower方法的作用是将字符串中的所有大写字母转换为小写字母，这样可以统一字符串的格式
+    string = re.sub(r"[^A-Za-z0-9(),!?\'\`-]", " ", string) 
+    string = re.sub(r"\'s", " \'s", string)  
+    string = re.sub(r"\'ve", " \'ve", string) 
+    string = re.sub(r"n\'t", " n\'t", string) 
+    string = re.sub(r"\'re", " \'re", string) 
+    string = re.sub(r"\'d", " \'d", string)  
+    string = re.sub(r"\'ll", " \'ll", string) 
+    string = re.sub(r",", " , ", string)  
+    string = re.sub(r"!", " ! ", string)  
+    string = re.sub(r"\(", " \( ", string)  
+    string = re.sub(r"\)", " \) ", string)  
+    string = re.sub(r"\?", " \? ", string)  
+    string = re.sub(r"\s{2,}", " ", string) 
+    return string.strip().lower()  
 
-# ?获取单词的词性
-def get_wordnet_pos(tag):
-    if tag.startswith('J'):
-        return wordnet.ADJ
-    elif tag.startswith('V'):
-        return wordnet.VERB
-    elif tag.startswith('N'):
-        return wordnet.NOUN
-    elif tag.startswith('R'):
-        return wordnet.ADV
-    else:
-        return None
-    
-# ? 预处理,判断是否存在特殊符号,如果是False就丢掉
+# * 舍弃特殊符号
 def is_valid(word):
     if re.match(r"[()\:;,.'-0-9]+", word):
         return False
@@ -102,7 +54,20 @@ def is_valid(word):
     else:
         return True
 
-# ! training.py
+# TODO 2_build_graph.py
+# * 定义一个函数来找出test词表中独有的词
+def find_new_words(train_path, test_path):
+    with open(train_path, 'r') as file:
+        train_vocabulary = set(file.read().splitlines())
+    unique_words = []
+    with open(test_path, 'r') as file:
+        for word in file:
+            word = word.strip() 
+            if word not in train_vocabulary:
+                unique_words.append(word)
+    return unique_words
+
+# TODO 3_training.py
 # * 统一节点类型
 def encode_map(input_array):  # 编码方法
     p_map={}
@@ -193,9 +158,7 @@ def build_hetero_graph_train():  # wordid1、wordid2、docid、wordid3编码解�
     
     return g,word_e_word_count,doc_e_word_count
 
-# ? 异构图上RGCN模型所需的自定义函数：RelGraphConvLayer、 RelGraphEmbed 以及 EntityClassify
-# * 创建一个关系图卷积层
-# * 参考文章：https://zhuanlan.zhihu.com/p/603389554
+# * 异构图模型
 class RelGraphConvLayer(nn.Module):
     # 构造函数
     def __init__(self,
@@ -311,7 +274,7 @@ class RelGraphEmbed(nn.Module):
         
         return self.embeds
 
-# *用于对图中的实体进行分类
+# * 用于对图中的实体进行分类
 class EntityClassify(nn.Module):
     # 构造函数
     def __init__(self,
@@ -409,8 +372,7 @@ class EntityClassify(nn.Module):
             x = y  # 更新 x 为最新的特征表示，以便在下一层中使用
         return y  # 图 g 中所有节点的最终特征表示
     
-# ? 模型采样超参与边采样
-# *根据节点类型和节点ID抽取embeding 参与模型训练更新，它从节点嵌入字典中提取特定节点的嵌入
+# * 模型采样超参与边采样
 def extract_embed(node_embed, input_nodes,device):
     emb = {}
     for ntype, nid in input_nodes.items():
@@ -420,8 +382,7 @@ def extract_embed(node_embed, input_nodes,device):
         emb[ntype] = node_embed[ntype][nid]
     return emb
 
-# ? 模型结构定义与损失函数说明
-# * 用于预测异构图中边的得分
+# * 模型结构定义与损失函数说明
 class HeteroDotProductPredictor(nn.Module):
 
     def forward(self, graph, h, etype):
@@ -458,43 +419,8 @@ class MarginLoss(nn.Module):
         # 1- pos_score + neg_score ,应该是 -pos 符号越大变成越小  +neg_score 越小越好
         return (1 - pos_score + neg_score.view(pos_score.shape[0], -1)).clamp(min=0).mean()    
 
-# ? 定义一个函数来找出test词表中独有的词
-def find_new_words(train_path, test_path):
-    # 读取train词表文件，并将词存储在集合中以便快速查找
-    with open(train_path, 'r') as file:
-        train_vocabulary = set(file.read().splitlines())
-    
-    # 初始化一个空列表来存储独有的词
-    unique_words = []
-    
-    # 读取test词表文件
-    with open(test_path, 'r') as file:
-        # 对于test词表中的每一个词
-        for word in file:
-            word = word.strip()  # 移除任何开始和结尾的空白字符
-            # 如果这个词不在train词表中，则将其添加到独有词列表中
-            if word not in train_vocabulary:
-                unique_words.append(word)
-    
-    return unique_words
-    
-    
-# ? 评估模型，用于测试
-def evaluate_model(model, test_graph, test_labels):
-    model.eval()
-    with torch.no_grad():
-        # 使用模型进行预测
-        predictions = model(test_graph, test_graph.ndata['feat'])
-        
-        # 计算评估指标
-        # 这里我们以 'co-occurrence' 边的 ROC AUC 分数为例
-        pred_scores = predictions['co-occurrence'].sigmoid()
-        roc_auc = roc_auc_score(test_labels['co-occurrence'].numpy(), pred_scores.numpy())
-        
-        return roc_auc
-    
-# ! 4_Comparative Experiment.py
-# ? 为训练集和测试集添加图数据
+# TODO 5_Comparative Experiment_traditional.py
+# * 为训练集和测试集添加图数据
 def data_create(bidirectional_edges,device,word_tensor):
     edge_list_1 = []
     edge_list_2 = []
@@ -519,7 +445,7 @@ def data_create(bidirectional_edges,device,word_tensor):
     
     return data_wos
 
-# ? 求指标的函数
+# * 求指标的函数
 def get_scores(clf, X_new, y_new): # 接受一个分类器和测试数据，然后返回多个评分指标
     scoring = ['precision', 'recall', 'accuracy', 'roc_auc', 'f1', 'average_precision']
     scorers = {scorer_name: check_scoring(clf, scorer_name) for scorer_name in scoring}
@@ -550,3 +476,5 @@ def multimetric_score(estimator, X_test, y_test, scorers): # 函数计算并返�
                             "instead. (scorer=%s)"
                             % (str(score), type(score), name))
     return scores
+
+# TODO 6_Comparative_Experiment_GCN.py
