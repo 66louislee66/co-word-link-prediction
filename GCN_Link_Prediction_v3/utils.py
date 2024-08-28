@@ -476,5 +476,3 @@ def multimetric_score(estimator, X_test, y_test, scorers): # 函数计算并返�
                             "instead. (scorer=%s)"
                             % (str(score), type(score), name))
     return scores
-
-# TODO 6_Comparative_Experiment_GCN.py

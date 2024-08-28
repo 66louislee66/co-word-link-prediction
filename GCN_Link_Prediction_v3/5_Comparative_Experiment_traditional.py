@@ -69,8 +69,8 @@ rf_model = ensemble.RandomForestClassifier(n_estimators=50, n_jobs=1,class_weigh
 xgb_model = XGBClassifier(learning_rate=0.1, n_estimators=50, max_depth=6, subsample=0.8, colsample_bytree=0.8,random_state=27, scale_pos_weight=0.4)
 svm_model = LinearSVC(C=1.0, random_state=42, dual=False,class_weight=balanced)
 
-# clfs = [('Naive Bayes',nb_model),('Logistic Regression',lr_model),('Random Forest',rf_model), ('XGB',xgb_model)]
-clfs = [('Random Forest',rf_model)]
+# clfs = [('Naive Bayes',nb_model),('Logistic Regression',lr_model),('Random Forest',rf_model), ('XGB',xgb_model), ('SVM', svm_model)]
+clfs = [('Naive Bayes',nb_model)]
 
 # * 训练和测试模型的主函数
 def main(clfs):
