@@ -18,7 +18,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, confu
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # * 构建异构图hetero_graph
-hetero_graph,word_e_word_count,doc_e_word_count = build_hetero_graph_train()
+hetero_graph,word_e_word_count,doc_e_word_count,topic_e_word_count = build_hetero_graph_train()
 print(hetero_graph)
 
 # * 边采样和数据加载
@@ -39,6 +39,13 @@ hetero_graph.edges['tf-idf'].data['train_mask'] = torch.zeros(doc_e_word_count, 
 train_doc_eids = hetero_graph.edges['tf-idf'].data['train_mask'].nonzero(as_tuple=True)[0]
 doc_dataloader = dgl.dataloading.DataLoader(
     hetero_graph, {'tf-idf': train_doc_eids}, sampler,device, batch_size=batch_size, shuffle=True
+)
+
+# 1 
+hetero_graph.edges['LDA'].data['train_mask'] = torch.zeros(topic_e_word_count, dtype=torch.bool).bernoulli(1.0)
+train_topic_eids = hetero_graph.edges['LDA'].data['train_mask'].nonzero(as_tuple=True)[0]
+topic_dataloader = dgl.dataloading.DataLoader(
+    hetero_graph, {'LDA': train_topic_eids}, sampler,device, batch_size=batch_size, shuffle=True
 )
 
 # * 模型训练超参与单epoch训练
@@ -76,6 +83,7 @@ for epoch in range(14):
     model.train()
     train_etype_one_epoch('co-occurrence', word_dataloader)
     train_etype_one_epoch('tf-idf', doc_dataloader)
+    train_etype_one_epoch('LDA', topic_dataloader) #1
     
 # * 模型保存与节点embedding导出
 save_graphs("graph.bin", [hetero_graph])  # 图数据和模型保存
@@ -84,6 +92,7 @@ torch.save(model.state_dict(), "model.bin")
 print("node_embed:", all_node_embed['word'][0])
 print(len(all_node_embed['word']))
 print(len(all_node_embed['doc']))
+print(len(all_node_embed['topic']))
 
 # * 模型预估的结果，最后应该使用 inference，并保存推导出的结果
 # ! 注意，这里传入 all_node_embed，选择0，选1可能会死锁,最终程序不执行

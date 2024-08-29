@@ -74,11 +74,14 @@ for data_type in dataset:
     # ! 注意：词表中的词必须能在你的文档中找到，不然会出现错误
     df = pd.read_csv(r'./data/1_webofsci_{}_allclean.txt'.format(data_type), header=None, sep = '\0')
     tf_idf_vectorizer = TfidfVectorizer(vocabulary = vocab, token_pattern=r'(?u)\b\w[\w-]*\b')
-    tf_idf = tf_idf_vectorizer.fit_transform(df[0])
+    tf_idf = tf_idf_vectorizer.fit_transform(df[0] )
     matrix_keywords_words = tf_idf.toarray()
     columns = vocab
     pd_data = pd.DataFrame(matrix_keywords_words, columns = columns)
     pd_data.to_csv(r'./data/2_webofsci_tf-idf_features_{}.csv'.format(data_type))
+
+    # * 构建主题和词之间关系矩阵：统计词与主题的关联度
+    pd_LDA = pd.read_csv(r'./data/2_webofsci_LDA_features_{}.csv'.format(data_type), index_col=0)
 
     # * 构建词与词之间的共现关系df_comatrix：统计每个词汇与其他词汇在同一个文档中共同出现的次数
     doc_list = []
@@ -118,6 +121,11 @@ for data_type in dataset:
         df_comatrix = df_comatrix.drop(index=new_words, errors='ignore')
         
         df_comatrix.to_csv(r'./data/2_comatrix_{}_label.csv'.format(data_type))
+        # 保存列名作为词汇表
+        vocabulary_test = df_comatrix.columns.tolist()
+        with open(r'./data/2_webofsci_vocabulary_test.txt', 'w') as f:
+            for word in vocabulary_test:
+                f.write(f"{word}\n")
 
         word_num_test = df_comatrix.shape[0]
         doc_num_test = pd_data.shape[0]
@@ -138,7 +146,8 @@ for data_type in dataset:
         # * 数据准备（提取非零元素的节点对应行列名称）并保存
         df_comatrix_normalized = pd.read_csv(r'./data/2_comatrix_normalized_{}.csv'.format(data_type), index_col=0)
         pd_data = pd.read_csv(r'./data/2_webofsci_tf-idf_features_{}.csv'.format(data_type), index_col=0)
-
+        pd_LDA = pd.read_csv(r'./data/2_webofsci_LDA_features_{}.csv'.format(data_type), index_col=0)
+        
         source_data_comatrix = pd.DataFrame({
             'wordid1': df_comatrix_normalized[df_comatrix_normalized != 0].stack().index.get_level_values(0),
             'wordid2': df_comatrix_normalized[df_comatrix_normalized != 0].stack().index.get_level_values(1),
@@ -151,9 +160,16 @@ for data_type in dataset:
             'weight': pd_data[pd_data != 0].stack().values
         })
         
+        source_data_LDA = pd.DataFrame({
+            'topicid': pd_LDA[pd_LDA != 0].stack().index.get_level_values(0),
+            'wordid4': pd_LDA[pd_LDA != 0].stack().index.get_level_values(1),
+            'weight': pd_LDA[pd_LDA != 0].stack().values
+        })
+        
         source_data_comatrix.to_csv(r'./data/2_source_data_comatrix_{}.csv'.format(data_type), index=False)
         source_data_tfidf.to_csv(r'./data/2_source_data_tfidf_{}.csv'.format(data_type), index=False)
-        
+        source_data_LDA.to_csv(r'./data/2_source_data_LDA_{}.csv'.format(data_type), index=False)
+
         # word_num_train = df_comatrix.shape[0]
         # doc_num_train = pd_data.shape[0]
 

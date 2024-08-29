@@ -88,8 +88,10 @@ def build_hetero_graph_train():  # wordid1、wordid2、docid、wordid3编码解�
     # 编码map
     source_data_comatrix = pd.read_csv(r'./data/2_source_data_comatrix_train.csv')
     source_data_tfidf = pd.read_csv(r'./data/2_source_data_tfidf_train.csv')
+    source_data_LDA = pd.read_csv(r'./data/2_source_data_LDA_train.csv') # 1
     wordid_encode_map = encode_map(set(source_data_comatrix['wordid1'].values))
     docid_encode_map = encode_map(set(source_data_tfidf['docid'].values))
+    topicid_encode_map = encode_map(set(source_data_LDA['topicid'].values)) # 1
     
     # 解码map 
     wordid_decode_map = decode_map(wordid_encode_map)
@@ -98,6 +100,10 @@ def build_hetero_graph_train():  # wordid1、wordid2、docid、wordid3编码解�
     docid_decode_map = decode_map(docid_encode_map)
     source_data_tfidf['docid_encoded'] = source_data_tfidf['docid'].apply(lambda e: docid_encode_map.get(str(e),-1))
     source_data_tfidf['wordid3_encoded'] = source_data_tfidf['wordid3'].apply(lambda e: wordid_encode_map.get(str(e),-1))
+    # 1
+    topicid_decode_map = decode_map(topicid_encode_map)
+    source_data_LDA['topicid_encoded'] = source_data_LDA['topicid'].apply(lambda e: topicid_encode_map.get(str(e),-1))
+    source_data_LDA['wordid4_encoded'] = source_data_LDA['wordid4'].apply(lambda e: wordid_encode_map.get(str(e),-1))
     
     # 索引与词对应关系
     with open('./data/3_wordid_decode_map.csv', mode='w', newline='', encoding='utf-8') as csvfile:
@@ -112,6 +118,13 @@ def build_hetero_graph_train():  # wordid1、wordid2、docid、wordid3编码解�
         writer.writerow(['Encoded ID', 'Original Doc ID'])
         for encoded_id, original_doc_id in docid_decode_map.items():
             writer.writerow([encoded_id, original_doc_id])
+            
+    # 1 对于topicid_decode_map也是类似的过程
+    with open('./data/3_topicid_decode_map.csv', mode='w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(['Encoded ID', 'Original Topic ID'])
+        for encoded_id, original_topic_id in topicid_decode_map.items():
+            writer.writerow([encoded_id, original_topic_id])
     
     # 统计唯一值的个数 
     wordid1_count = len(set(source_data_comatrix['wordid1_encoded'].values))
@@ -122,12 +135,20 @@ def build_hetero_graph_train():  # wordid1、wordid2、docid、wordid3编码解�
     print(docid_count)
     wordid3_count = len(set(source_data_tfidf['wordid3_encoded'].values))
     print(wordid3_count)
+    # 1
+    topicid_count = len(set(source_data_LDA['topicid_encoded'].values))
+    print(topicid_count)
+    wordid4_count = len(set(source_data_LDA['wordid4_encoded'].values))
+    print(wordid4_count)
     
     # 保存编码后的矩阵
     final_source_data_comatrix = source_data_comatrix[['wordid1_encoded','wordid2_encoded','weight']].sort_values(by='wordid1_encoded', ascending=True)
     final_source_data_comatrix.to_csv(r'./data/3_final_source_data_comatrix_train.csv',index=False)
     final_source_data_tfidf = source_data_tfidf[['docid_encoded','wordid3_encoded','weight']].sort_values(by='docid_encoded', ascending=True)
     final_source_data_tfidf.to_csv(r'./data/3_final_source_data_tfidf_train.csv',index=False)
+    # 1
+    final_source_data_LDA = source_data_LDA[['topicid_encoded','wordid4_encoded','weight']].sort_values(by='topicid_encoded', ascending=True)
+    final_source_data_LDA.to_csv(r'./data/3_final_source_data_LDA_train.csv',index=False)
     
     # word -co-occurence- word
     word_e_word_src = final_source_data_comatrix['wordid1_encoded'].values
@@ -142,12 +163,21 @@ def build_hetero_graph_train():  # wordid1、wordid2、docid、wordid3编码解�
     tfidf_weights = final_source_data_tfidf['weight'].values
     doc_e_word_count = len(doc_e_word_dst)
     print("doc_e_word_count", doc_e_word_count)
+    
+    # 1 topic -LDA- word  
+    topic_e_word_src = final_source_data_LDA['topicid_encoded'].values
+    topic_e_word_dst = final_source_data_LDA['wordid4_encoded'].values
+    LDA_weights = final_source_data_LDA['weight'].values
+    topic_e_word_count = len(topic_e_word_dst)
+    print("topic_e_word_count", topic_e_word_count)
 
     graph_data = {
         ('word', 'co-occurrence', 'word'): (word_e_word_src, word_e_word_dst),
         ('word', 'co-occurrence_i', 'word'): (word_e_word_dst, word_e_word_src),
         ('doc', 'tf-idf', 'word'): (doc_e_word_src, doc_e_word_dst),
-        ('word', 'tf-idf_i', 'doc'): (doc_e_word_dst, doc_e_word_src)
+        ('word', 'tf-idf_i', 'doc'): (doc_e_word_dst, doc_e_word_src),
+        ('topic', 'LDA', 'word'): (topic_e_word_src, topic_e_word_dst),  #1
+        ('word', 'LDA_i', 'topic'): (topic_e_word_dst, topic_e_word_src) #1
     }
     
     g = dgl.heterograph(graph_data)
@@ -155,8 +185,9 @@ def build_hetero_graph_train():  # wordid1、wordid2、docid、wordid3编码解�
     # 设置边特征
     g.edges['co-occurrence'].data['weight'] = torch.tensor(co_occurrence_weights, dtype=torch.float32)
     g.edges['tf-idf'].data['weight'] = torch.tensor(tfidf_weights, dtype=torch.float32)
+    g.edges['LDA'].data['weight'] = torch.tensor(LDA_weights, dtype=torch.float32) # 1
     
-    return g,word_e_word_count,doc_e_word_count
+    return g, word_e_word_count, doc_e_word_count, topic_e_word_count
 
 # * 异构图模型
 class RelGraphConvLayer(nn.Module):
