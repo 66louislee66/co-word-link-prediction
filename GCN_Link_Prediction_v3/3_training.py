@@ -22,7 +22,7 @@ hetero_graph,word_e_word_count,doc_e_word_count,topic_e_word_count = build_heter
 print(hetero_graph)
 
 # * 边采样和数据加载
-n_hetero_features = 16  # 特征维度大小
+n_hetero_features = 16 
 neg_sample_count = 1
 batch_size=81920
 
@@ -41,18 +41,17 @@ doc_dataloader = dgl.dataloading.DataLoader(
     hetero_graph, {'tf-idf': train_doc_eids}, sampler,device, batch_size=batch_size, shuffle=True
 )
 
-# 1 
 hetero_graph.edges['LDA'].data['train_mask'] = torch.zeros(topic_e_word_count, dtype=torch.bool).bernoulli(1.0)
 train_topic_eids = hetero_graph.edges['LDA'].data['train_mask'].nonzero(as_tuple=True)[0]
 topic_dataloader = dgl.dataloading.DataLoader(
     hetero_graph, {'LDA': train_topic_eids}, sampler,device, batch_size=batch_size, shuffle=True
-)
+) #1
 
 # * 模型训练超参与单epoch训练
-hidden_feat_dim = n_hetero_features  # 隐藏层数
-out_feat_dim = n_hetero_features  # 输出层数
+hidden_feat_dim = n_hetero_features 
+out_feat_dim = n_hetero_features 
 
-embed_layer = RelGraphEmbed(hetero_graph, hidden_feat_dim)  # 节点随机初始化
+embed_layer = RelGraphEmbed(hetero_graph, hidden_feat_dim)
 all_node_embed = embed_layer()
 all_node_embed = {ntype: embed.to(device) for ntype, embed in all_node_embed.items()}
 
@@ -63,7 +62,7 @@ optimizer = torch.optim.Adam(all_params, lr=0.01, weight_decay=0)
 
 loss_func = MarginLoss()
 
-model.to(device)  # 将数据加载到 GPU
+model.to(device)
 
 def train_etype_one_epoch(etype, spec_dataloader):  # 单次训练
     losses = []
@@ -95,7 +94,7 @@ print(len(all_node_embed['doc']))
 print(len(all_node_embed['topic']))
 
 # * 模型预估的结果，最后应该使用 inference，并保存推导出的结果
-# ! 注意，这里传入 all_node_embed，选择0，选1可能会死锁,最终程序不执行
+# ! 注意，这里传入 all_node_embed，选择0，选1可能会死锁，最终程序不执行
 inference_out = model.inference(hetero_graph, batch_size,device, num_workers=0, x = all_node_embed)
 print(inference_out['word'].shape)
 print(inference_out['word'][0])
@@ -109,21 +108,21 @@ embed_df.to_csv(r'./data/3_word_embeddings_inference.csv', index=False)
 # * 提取与合并正负样本并保存
 comatix_test_label = pd.read_csv(r'./data/2_comatrix_test_label.csv', index_col=0)
 
-stacked_comatrix = comatix_test_label.stack().reset_index()  # 将DataFrame转换为长格式，并保留原始的行和列标签
+stacked_comatrix = comatix_test_label.stack().reset_index()  
 stacked_comatrix.columns = ['row_word', 'col_word', 'label']
-upper_tri = stacked_comatrix[stacked_comatrix['row_word'] < stacked_comatrix['col_word']]  # 过滤出上三角部分的数据（不包括对角线）
+upper_tri = stacked_comatrix[stacked_comatrix['row_word'] < stacked_comatrix['col_word']] 
 
 positive_samples = upper_tri[upper_tri['label'] == 1]
 negative_samples = upper_tri[upper_tri['label'] == 0]
 
-balanced_data = pd.concat([positive_samples, negative_samples])  # 合并正样本和选定的负样本
+balanced_data = pd.concat([positive_samples, negative_samples]) 
 balanced_data.to_csv(r'./data/3_source_data_label.csv', index=False)
 
 # * 将正负样本的名称转换为索引
 wordid_decode_df = pd.read_csv('./data/3_wordid_decode_map.csv')
 word_to_index = dict(zip(wordid_decode_df['Original Word'], wordid_decode_df['Encoded ID']))
 
-balanced_data.loc[:, 'row_word'] = balanced_data['row_word'].map(word_to_index)  # 替换 'row_word' 和 'col_word' 列中的词名称为索引
+balanced_data.loc[:, 'row_word'] = balanced_data['row_word'].map(word_to_index) 
 balanced_data.loc[:, 'col_word'] = balanced_data['col_word'].map(word_to_index) 
 
 # * 计算点积且获取得分，并保存
@@ -140,24 +139,24 @@ for idx, row in balanced_data.iterrows():
 
 dot_products_tensor = torch.tensor(dot_products)
 
-mean = dot_products_tensor.mean().item()  # 计算平均值和标准差
+mean = dot_products_tensor.mean().item() 
 std = dot_products_tensor.std().item()
 
-normalized_scores = []  # # 初始化一个空列表来存储标准化后的得分
+normalized_scores = [] 
 
-for dot_product in dot_products:  # 对每个点积进行标准化
+for dot_product in dot_products: 
     normalized_score = (dot_product - mean) / std
     normalized_scores.append(normalized_score)
 
-pred_scores = torch.sigmoid(torch.tensor(normalized_scores))  # 应用sigmoid函数将标准化得分转换为概率
+pred_scores = torch.sigmoid(torch.tensor(normalized_scores)) 
 
 balanced_data['pred'] = pred_scores
 balanced_data.to_csv(r'./data/3_modified_data_label.csv', index=False)
 
-true_labels = balanced_data['label']  # 提取真实标签和预测概率
+true_labels = balanced_data['label'] 
 predicted_probs = balanced_data['pred']
 
-predicted_labels = (predicted_probs > 0.5).astype(int)  # 将预测概率二值化（假设阈值为0.5）
+predicted_labels = (predicted_probs > 0.5).astype(int)  
 
 # * 评估模型的性能，计算准确率、精确率和召回率、混淆矩阵和ROC
 accuracy = accuracy_score(true_labels, predicted_labels)

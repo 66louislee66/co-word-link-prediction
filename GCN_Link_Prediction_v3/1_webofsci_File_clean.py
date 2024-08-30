@@ -3,7 +3,6 @@
 from utils import clean_str,is_valid
 from nltk import word_tokenize
 
-
 dataset = ["train", "test"]
 for data_type in dataset:
     
@@ -55,9 +54,7 @@ for data_type in dataset:
 
         doc_str = ' '.join(doc_words).strip()  
         clean_docs.append(doc_str) 
-
     clean_corpus_str = '\n'.join(clean_docs)  
-
     f = open(r'./data/1_webofsci_{}_allclean.txt'.format(data_type), 'w') 
     f.write(clean_corpus_str)  
     f.close()

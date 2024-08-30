@@ -1,3 +1,5 @@
+# 自定义函数
+# * 导入模块
 import numpy as np
 import pandas as pd
 import re
@@ -11,11 +13,7 @@ import dgl.nn as dglnn
 import dgl.function as fn
 from dgl.nn.pytorch import GraphConv, HeteroGraphConv
 from dgl.nn import GraphConv
-from sklearn.metrics import roc_auc_score, accuracy_score, recall_score, precision_score
 from sklearn.metrics import check_scoring
-import torch_geometric.transforms as T
-from torch_geometric.nn import GCNConv
-from torch_geometric.utils import negative_sampling
 import torch.nn.functional as F
 import numbers
 from torch_geometric.data import Data
@@ -55,8 +53,7 @@ def is_valid(word):
         return True
 
 # TODO 2_build_graph.py
-# * 定义一个函数来找出test词表中独有的词
-def find_new_words(train_path, test_path):
+def find_words(train_path, test_path):
     with open(train_path, 'r') as file:
         train_vocabulary = set(file.read().splitlines())
     unique_words = []
@@ -83,15 +80,15 @@ def decode_map(encode_map):  # 解码方法
     return de_map
 
 # * 构建训练集的异构图
-def build_hetero_graph_train():  # wordid1、wordid2、docid、wordid3编码解码
+def build_hetero_graph_train(): 
     
     # 编码map
     source_data_comatrix = pd.read_csv(r'./data/2_source_data_comatrix_train.csv')
     source_data_tfidf = pd.read_csv(r'./data/2_source_data_tfidf_train.csv')
-    source_data_LDA = pd.read_csv(r'./data/2_source_data_LDA_train.csv') # 1
+    source_data_LDA = pd.read_csv(r'./data/2_source_data_LDA_train.csv') #1
     wordid_encode_map = encode_map(set(source_data_comatrix['wordid1'].values))
     docid_encode_map = encode_map(set(source_data_tfidf['docid'].values))
-    topicid_encode_map = encode_map(set(source_data_LDA['topicid'].values)) # 1
+    topicid_encode_map = encode_map(set(source_data_LDA['topicid'].values)) #1
     
     # 解码map 
     wordid_decode_map = decode_map(wordid_encode_map)
@@ -100,16 +97,15 @@ def build_hetero_graph_train():  # wordid1、wordid2、docid、wordid3编码解�
     docid_decode_map = decode_map(docid_encode_map)
     source_data_tfidf['docid_encoded'] = source_data_tfidf['docid'].apply(lambda e: docid_encode_map.get(str(e),-1))
     source_data_tfidf['wordid3_encoded'] = source_data_tfidf['wordid3'].apply(lambda e: wordid_encode_map.get(str(e),-1))
-    # 1
-    topicid_decode_map = decode_map(topicid_encode_map)
+    topicid_decode_map = decode_map(topicid_encode_map) #1
     source_data_LDA['topicid_encoded'] = source_data_LDA['topicid'].apply(lambda e: topicid_encode_map.get(str(e),-1))
     source_data_LDA['wordid4_encoded'] = source_data_LDA['wordid4'].apply(lambda e: wordid_encode_map.get(str(e),-1))
     
     # 索引与词对应关系
     with open('./data/3_wordid_decode_map.csv', mode='w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(['Encoded ID', 'Original Word'])  # 写入标题行 
-        for encoded_id, original_word in wordid_decode_map.items():  # 遍历解码映射并写入每个条目
+        writer.writerow(['Encoded ID', 'Original Word'])   
+        for encoded_id, original_word in wordid_decode_map.items():
             writer.writerow([encoded_id, original_word])
 
     # 对于docid_decode_map也是类似的过程
@@ -135,8 +131,7 @@ def build_hetero_graph_train():  # wordid1、wordid2、docid、wordid3编码解�
     print(docid_count)
     wordid3_count = len(set(source_data_tfidf['wordid3_encoded'].values))
     print(wordid3_count)
-    # 1
-    topicid_count = len(set(source_data_LDA['topicid_encoded'].values))
+    topicid_count = len(set(source_data_LDA['topicid_encoded'].values))  #1
     print(topicid_count)
     wordid4_count = len(set(source_data_LDA['wordid4_encoded'].values))
     print(wordid4_count)
@@ -146,9 +141,8 @@ def build_hetero_graph_train():  # wordid1、wordid2、docid、wordid3编码解�
     final_source_data_comatrix.to_csv(r'./data/3_final_source_data_comatrix_train.csv',index=False)
     final_source_data_tfidf = source_data_tfidf[['docid_encoded','wordid3_encoded','weight']].sort_values(by='docid_encoded', ascending=True)
     final_source_data_tfidf.to_csv(r'./data/3_final_source_data_tfidf_train.csv',index=False)
-    # 1
     final_source_data_LDA = source_data_LDA[['topicid_encoded','wordid4_encoded','weight']].sort_values(by='topicid_encoded', ascending=True)
-    final_source_data_LDA.to_csv(r'./data/3_final_source_data_LDA_train.csv',index=False)
+    final_source_data_LDA.to_csv(r'./data/3_final_source_data_LDA_train.csv',index=False) #1
     
     # word -co-occurence- word
     word_e_word_src = final_source_data_comatrix['wordid1_encoded'].values
@@ -164,7 +158,7 @@ def build_hetero_graph_train():  # wordid1、wordid2、docid、wordid3编码解�
     doc_e_word_count = len(doc_e_word_dst)
     print("doc_e_word_count", doc_e_word_count)
     
-    # 1 topic -LDA- word  
+    #1 topic -LDA- word  
     topic_e_word_src = final_source_data_LDA['topicid_encoded'].values
     topic_e_word_dst = final_source_data_LDA['wordid4_encoded'].values
     LDA_weights = final_source_data_LDA['weight'].values
@@ -185,7 +179,7 @@ def build_hetero_graph_train():  # wordid1、wordid2、docid、wordid3编码解�
     # 设置边特征
     g.edges['co-occurrence'].data['weight'] = torch.tensor(co_occurrence_weights, dtype=torch.float32)
     g.edges['tf-idf'].data['weight'] = torch.tensor(tfidf_weights, dtype=torch.float32)
-    g.edges['LDA'].data['weight'] = torch.tensor(LDA_weights, dtype=torch.float32) # 1
+    g.edges['LDA'].data['weight'] = torch.tensor(LDA_weights, dtype=torch.float32) #1
     
     return g, word_e_word_count, doc_e_word_count, topic_e_word_count
 
@@ -212,10 +206,8 @@ class RelGraphConvLayer(nn.Module):
         self.activation = activation
         self.self_loop = self_loop
 
-        # 这个地方只是起到计算的作用, 不保存数据
+        # ! 这个地方只是起到计算的作用, 不保存数据
         self.conv = HeteroGraphConv({
-            # graph conv 里面有模型参数weight,如果外边不传进去的话,里面新建
-            # 相当于模型加了一层全链接, 对每一种类型的边计算卷积
             rel: GraphConv(in_feat, out_feat, norm='right', weight=False, bias=False)
             for rel in rel_names
         })
@@ -228,12 +220,12 @@ class RelGraphConvLayer(nn.Module):
             else:
                 # 每个关系,有一个weight,全连接层，self.weight是一个三维的权重矩阵
                 self.weight = nn.Parameter(torch.Tensor(len(self.rel_names), in_feat, out_feat))
-                nn.init.xavier_uniform_(self.weight, gain=nn.init.calculate_gain('relu'))  # 初始化一个神经网络层的权重参数
+                nn.init.xavier_uniform_(self.weight, gain=nn.init.calculate_gain('relu'))
 
         # bias
         if bias:
-            self.h_bias = nn.Parameter(torch.Tensor(out_feat))  # 输出特征有偏置值
-            nn.init.zeros_(self.h_bias)  # 训练开始时，偏置为0，不会对网络产生任何影响
+            self.h_bias = nn.Parameter(torch.Tensor(out_feat))
+            nn.init.zeros_(self.h_bias)  
 
         # weight for self loop
         if self.self_loop:  # 考虑自身的特征，为自身赋予权重
@@ -250,19 +242,18 @@ class RelGraphConvLayer(nn.Module):
         if self.use_weight:
             weight = self.basis() if self.use_basis else self.weight
             # 这每个关系对应一个权重矩阵对应输入维度和输出维度
-            wdict = {self.rel_names[i]: {'weight': w.squeeze(0)}  # 去除第0维，如果它的大小为1，(1, A, B)变为(A, B)
-                    for i, w in enumerate(torch.split(weight, 1, dim=0))}  # 分割多个子张量
+            wdict = {self.rel_names[i]: {'weight': w.squeeze(0)}  
+                    for i, w in enumerate(torch.split(weight, 1, dim=0))} 
         else:
             wdict = {}
 
-        if g.is_block: # 处理图g是否为一个块结构，这通常在小批量训练中使用
+        if g.is_block: # 处理图g是否为一个块结构
             inputs_src = inputs
             inputs_dst = {k: v[:g.number_of_dst_nodes(k)] for k, v in inputs.items()}
         else:
             inputs_src = inputs_dst = inputs
 
-        # 多类型的边结点卷积完成后的输出
-        # 输入的是blocks 和 embeding
+        # 多类型的边节点卷积完成后的输出
         hs = self.conv(g, inputs, mod_kwargs=wdict)
         
         # 在GCN上应用于每个节点类型的特征变换
@@ -294,25 +285,24 @@ class RelGraphEmbed(nn.Module):
         self.activation = activation
         self.dropout = nn.Dropout(dropout)
 
-        # create weight embeddings for each node for each relation
-        self.embeds = nn.ParameterDict()  # 字典，用于存储模型参数
+        self.embeds = nn.ParameterDict() 
         for ntype in g.ntypes:
             embed = nn.Parameter(torch.Tensor(g.number_of_nodes(ntype), self.embed_size))
             nn.init.xavier_uniform_(embed, gain=nn.init.calculate_gain('relu'))
             self.embeds[ntype] = embed
-    # 前向传播函数，返回嵌入向量
+
     def forward(self, block=None):
         
         return self.embeds
 
 # * 用于对图中的实体进行分类
 class EntityClassify(nn.Module):
-    # 构造函数
+
     def __init__(self,
                 g,
-                h_dim, out_dim,  # 输出层的维度，通常对应于分类任务中的类别数
-                num_bases=-1,  # 基数，用于控制关系类型的权重共享；如果小于0或大于关系类型的数量，则使用关系类型的数量作为基数
-                num_hidden_layers=1,  # 双层
+                h_dim, out_dim,  
+                num_bases=-1,  
+                num_hidden_layers=1,  
                 dropout=0,
                 use_self_loop=False):
         super(EntityClassify, self).__init__()
@@ -331,19 +321,11 @@ class EntityClassify(nn.Module):
 
         self.embed_layer = RelGraphEmbed(g, self.h_dim)
         self.layers = nn.ModuleList()
-        # i2h
+
         self.layers.append(RelGraphConvLayer(
             self.h_dim, self.h_dim, self.rel_names,
             self.num_bases, activation=F.relu, self_loop=self.use_self_loop,
-            dropout=self.dropout, weight=False))  # 不使用可学习权重矩阵，可以减少参数，防止过拟合
-
-        # h2h , 这里不添加隐层,只用2层卷积
-        # for i in range(self.num_hidden_layers):
-        #    self.layers.append(RelGraphConvLayer(
-        #        self.h_dim, self.h_dim, self.rel_names,
-        #        self.num_bases, activation=F.relu, self_loop=self.use_self_loop,
-        #        dropout=self.dropout))
-        # h2o
+            dropout=self.dropout, weight=False))  
 
         self.layers.append(RelGraphConvLayer(
             self.h_dim, self.out_dim, self.rel_names,
@@ -352,17 +334,17 @@ class EntityClassify(nn.Module):
 
     # 输入 blocks,embeding
     def forward(self, h=None, blocks=None):
-        if h is None:  # 无节点特征，self.embed_layer() 来获取图中所有节点的嵌入表示
-            # full graph training
+        if h is None: 
+
             h = self.embed_layer()
         if blocks is None:  
-            # full graph training
+
             for layer in self.layers:
                 h = layer(self.g, h)
         else:
             # minibatch training
             # 输入 blocks,embeding
-            for layer, block in zip(self.layers, blocks):  # 创建一个迭代器，该迭代器会将两个或更多的可迭代对象中的元素按顺序配对成元组
+            for layer, block in zip(self.layers, blocks):  
                 h = layer(block, h)
         return h
 
@@ -372,7 +354,7 @@ class EntityClassify(nn.Module):
         if x is None:
             x = self.embed_layer()
 
-        for l, layer in enumerate(self.layers):  # 遍历每一层，张量的大小由图中该类型节点的数量和相应的特征维度决定
+        for l, layer in enumerate(self.layers): 
             y = {
                 k: torch.zeros(
                     g.number_of_nodes(k),
@@ -381,7 +363,7 @@ class EntityClassify(nn.Module):
 
             
             sampler = dgl.dataloading.MultiLayerFullNeighborSampler(1)
-            dataloader = dgl.dataloading.DataLoader(   # 将图 g 分成多个批次，每个批次包含一定数量的节点，目的：高效加载和处理图数据
+            dataloader = dgl.dataloading.DataLoader(   
                 g,
                 {k: torch.arange(g.number_of_nodes(k)) for k in g.ntypes},
                 sampler,
@@ -400,14 +382,14 @@ class EntityClassify(nn.Module):
                 for k in h.keys():
                     y[k][output_nodes[k]] = h[k].cpu()  # h[k].cpu()
 
-            x = y  # 更新 x 为最新的特征表示，以便在下一层中使用
-        return y  # 图 g 中所有节点的最终特征表示
+            x = y  
+        return y  
     
 # * 模型采样超参与边采样
 def extract_embed(node_embed, input_nodes,device):
     emb = {}
     for ntype, nid in input_nodes.items():
-        # 确保nid在正确的设备上
+
         nid = nid.to(device)
         nid = input_nodes[ntype]
         emb[ntype] = node_embed[ntype][nid]
@@ -418,9 +400,8 @@ class HeteroDotProductPredictor(nn.Module):
 
     def forward(self, graph, h, etype):
         # 在计算之外更新h,保存为全局可用
-        # h contains the node representations for each edge type computed from node_clf_hetero.py
-        with graph.local_scope(): #  创建了一个本地作用域,在这个作用域内对图的任何修改都不会影响图的全局状态
-            graph.ndata['h'] = h  # assigns 'h' of all node types in one shot
+        with graph.local_scope(): 
+            graph.ndata['h'] = h  
             graph.apply_edges(fn.u_dot_v('h', 'h', 'score'), etype=etype)
             return graph.edges[etype].data['score']
         
@@ -436,17 +417,15 @@ class Model(nn.Module):
 
     def forward(self, h, pos_g, neg_g, blocks, etype):
         h = self.rgcn(h, blocks)  # 更新节点特征h
-        return self.pred(pos_g, h, etype), self.pred(neg_g, h, etype)  # 计算正样本图pos_g和负样本图neg_g中边的得分
+        return self.pred(pos_g, h, etype), self.pred(neg_g, h, etype)  
     
     def inference(self, hetero_graph, batch_size, device, num_workers, x):
-        # 调用 EntityClassify 实例的 inference 方法
         return self.rgcn.inference(hetero_graph, batch_size, device, num_workers, x)
     
 # * 自定义的损失函数，用于图卷积网络（GCN）中的链接预测任务，最大化正样本边的得分和负样本边的得分之间的差距
 class MarginLoss(nn.Module):
 
     def forward(self, pos_score, neg_score):
-        # 求损失的平均值 , view 改变tensor 的形状
         # 1- pos_score + neg_score ,应该是 -pos 符号越大变成越小  +neg_score 越小越好
         return (1 - pos_score + neg_score.view(pos_score.shape[0], -1)).clamp(min=0).mean()    
 

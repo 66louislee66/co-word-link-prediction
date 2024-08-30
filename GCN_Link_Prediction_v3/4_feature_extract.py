@@ -41,10 +41,12 @@ for data_type in dataset:
     df_output = pd.DataFrame(topic_word, columns = columns)
     print(df_output.shape)
     df_output.to_csv(r'./data/2_webofsci_LDA_features_{}.csv'.format(data_type))
+    
 
     vectorized_func = np.vectorize(lambda x: 1 if x > 0.001 else 0)
     df_output = df_output.apply(vectorized_func)
     print(df_output.shape)
+    df_output.to_csv(r'./data/4_webofsci_LDA_features_{}.csv'.format(data_type))
 
     # * 添加TF-IDF特征
     # ! 参考来源：https://zhuanlan.zhihu.com/p/448623822
@@ -53,5 +55,5 @@ for data_type in dataset:
     matrix_keywords_words = tf_idf.toarray()
     pd_data = pd.DataFrame(matrix_keywords_words, columns = columns)
     my_final_df = pd_data.append(df_output, ignore_index = True)
-    my_final_df.to_csv(r'./data/4_webofsci_train_LDA_features_{}.csv'.format(data_type))
+    my_final_df.to_csv(r'./data/4_webofsci_{}_LDA_features.csv'.format(data_type))
     print(df_output.shape)
