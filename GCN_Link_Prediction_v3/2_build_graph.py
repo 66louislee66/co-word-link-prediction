@@ -106,6 +106,7 @@ for data_type in dataset:
     if data_type == "test":
         vectorized_func = np.vectorize(lambda x: 1 if x > 0 else 0)
         df_comatrix = df_comatrix.apply(vectorized_func)
+        df_comatrix.to_csv(r'./data/2_comatrix_{}.csv'.format(data_type))
 
         train_path = './data/2_webofsci_vocabulary_train.txt'
         test_path = './data/2_webofsci_vocabulary_test.txt'
@@ -117,7 +118,7 @@ for data_type in dataset:
         df_comatrix.to_csv(r'./data/2_comatrix_{}_label.csv'.format(data_type))
 
         vocabulary_test = df_comatrix.columns.tolist()
-        with open(r'./data/2_webofsci_vocabulary_test.txt', 'w') as f:
+        with open(r'./data/2_webofsci_vocabulary_test_label.txt', 'w') as f:
             for word in vocabulary_test:
                 f.write(f"{word}\n")
 

@@ -11,7 +11,7 @@ from sklearn import ensemble
 from xgboost import XGBClassifier
 from utils import *
 import gc
-# balanced = {0: 8, 1: 1}
+
 device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
 # * 加载节点数据(LDA特征)
@@ -44,7 +44,7 @@ bidirectional_edges = bidirectional_edges.sort_values(by='wordid1', ascending=Tr
 data_train = data_create(bidirectional_edges,device,LDA_tensor_train)
 
 # * 测试集添加图数据
-comatix_test_label = pd.read_csv(r'./data/2_comatrix_test_label.csv', index_col=0)
+comatix_test_label = pd.read_csv(r'./data/2_comatrix_test.csv', index_col=0)
 stacked_comatrix = comatix_test_label.stack().reset_index()
 stacked_comatrix.columns = ['row_word', 'col_word', 'label']
 
@@ -73,7 +73,7 @@ xgb_model = XGBClassifier(learning_rate=0.1, n_estimators=50, max_depth=6, subsa
 svm_model = LinearSVC(C=1.0, random_state=42, dual=False)
 
 clfs = [('Naive Bayes',nb_model),('Logistic Regression',lr_model),('Random Forest',rf_model), ('XGB',xgb_model), ('SVM', svm_model)]
-# clfs = [('XGB',xgb_model)]
+# clfs = [('SVM', svm_model)]
 
 # * 训练和测试模型的主函数
 def main(clfs):

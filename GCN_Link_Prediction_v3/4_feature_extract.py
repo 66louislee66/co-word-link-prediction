@@ -5,6 +5,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 import pandas as pd
 import lda
 import lda.datasets
+import random
 
 dataset = ["train", "test"]
 for data_type in dataset:
@@ -13,6 +14,7 @@ for data_type in dataset:
     vocabulary_df = pd.read_csv(r'./data/2_webofsci_vocabulary_{}.txt'.format(data_type), header=None, names=['Word'])
     feature_names = vocabulary_df['Word'].tolist()
     df = pd.read_csv(r'./data/1_webofsci_{}_allclean.txt'.format(data_type), header=None, sep = '\0')
+
     documents = df[0].values.tolist()
     count_vectorizer = CountVectorizer(vocabulary = feature_names)
     cv = count_vectorizer.fit_transform(documents)
@@ -50,6 +52,8 @@ for data_type in dataset:
 
     # * 添加TF-IDF特征
     # ! 参考来源：https://zhuanlan.zhihu.com/p/448623822
+    if data_type == "train":
+        df = df.sample(n=1378, random_state=42).reset_index(drop=True)
     tf_idf_vectorizer = TfidfVectorizer(vocabulary = feature_names)
     tf_idf = tf_idf_vectorizer.fit_transform(df[0])
     matrix_keywords_words = tf_idf.toarray()
